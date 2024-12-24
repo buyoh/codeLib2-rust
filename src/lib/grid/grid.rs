@@ -72,11 +72,28 @@ impl ops::Sub for Pt {
     }
 }
 
-impl Pt {
-    fn newp(p: (i32, i32)) -> Self {
-        Pt { y: p.0, x: p.1 }
+impl Into<(i32, i32)> for Pt {
+    fn into(self) -> (i32, i32) {
+        (self.y, self.x)
     }
+}
 
+impl From<(usize, usize)> for Pt {
+    fn from(p: (usize, usize)) -> Self {
+        Self {
+            y: p.0 as i32,
+            x: p.1 as i32,
+        }
+    }
+}
+
+impl From<(i32, i32)> for Pt {
+    fn from(p: (i32, i32)) -> Self {
+        Self { y: p.0, x: p.1 }
+    }
+}
+
+impl Pt {
     fn zero() -> Self {
         Pt { y: 0, x: 0 }
     }
@@ -99,6 +116,8 @@ impl Pt {
             && self.y <= right_down.y
     }
 }
+
+const K_ADJACENTS_4 : [Pt; 4] = [Pt { y: 0, x: -1 }, Pt { y: -1, x: 0 }, Pt { y: 0, x: 1 }, Pt { y: 1, x: 0 }];
 
 #[derive(Clone)]
 struct Fi<T> {
@@ -136,30 +155,34 @@ impl<T> Fi<T> {
             data,
         }
     }
-    fn get(&self, yx: (usize, usize)) -> Option<&T> {
+    fn get<I: Into<(usize, usize)>>(&self, yx: I) -> Option<&T> {
+        let yx = yx.into();
         if 0 <= yx.0 && yx.0 < self.height && 0 <= yx.1 && yx.1 < self.width {
             Some(&self[yx])
         } else {
             None
         }
     }
-    fn get_mut(&mut self, yx: (usize, usize)) -> Option<&mut T> {
+    fn get_mut<I: Into<(usize, usize)>>(&mut self, yx: I) -> Option<&mut T> {
+        let yx = yx.into();
         if 0 <= yx.0 && yx.0 < self.height && 0 <= yx.1 && yx.1 < self.width {
             Some(&mut self[yx])
         } else {
             None
         }
     }
-    fn geti(&self, yx: (i32, i32)) -> Option<&T> {
+    fn geti<I: Into<(i32, i32)>>(&self, yx: I) -> Option<&T> {
+        let yx = yx.into();
         if 0 <= yx.0 && yx.0 < self.height as i32 && 0 <= yx.1 && yx.1 < self.width as i32 {
-            Some(&self[yx])
+            Some(&self[(yx.0 as usize, yx.1 as usize)])
         } else {
             None
         }
     }
-    fn geti_mut(&mut self, yx: (i32, i32)) -> Option<&mut T> {
+    fn geti_mut<I: Into<(i32, i32)>>(&mut self, yx: I) -> Option<&mut T> {
+        let yx = yx.into();
         if 0 <= yx.0 && yx.0 < self.height as i32 && 0 <= yx.1 && yx.1 < self.width as i32 {
-            Some(&mut self[yx])
+            Some(&mut self[(yx.0 as usize, yx.1 as usize)])
         } else {
             None
         }
@@ -198,29 +221,18 @@ impl<T> Fi<T> {
     }
 }
 
-impl<T> ops::Index<(usize, usize)> for Fi<T> {
+impl<I: Into<(usize, usize)>, T> ops::Index<I> for Fi<T> {
     type Output = T;
-    fn index(&self, yx: (usize, usize)) -> &Self::Output {
+    fn index(&self, yx: I) -> &Self::Output {
+        let yx: (usize, usize) = yx.into();
         &self.data[self.width * yx.0 + yx.1]
     }
 }
 
-impl<T> ops::IndexMut<(usize, usize)> for Fi<T> {
-    fn index_mut(&mut self, yx: (usize, usize)) -> &mut Self::Output {
+impl<I: Into<(usize, usize)>, T> ops::IndexMut<I> for Fi<T> {
+    fn index_mut(&mut self, yx: I) -> &mut Self::Output {
+        let yx: (usize, usize) = yx.into();
         &mut self.data[self.width * yx.0 + yx.1]
-    }
-}
-
-impl<T> ops::Index<(i32, i32)> for Fi<T> {
-    type Output = T;
-    fn index(&self, yx: (i32, i32)) -> &Self::Output {
-        &self.data[(self.width as i32 * yx.0 + yx.1) as usize]
-    }
-}
-
-impl<T> ops::IndexMut<(i32, i32)> for Fi<T> {
-    fn index_mut(&mut self, yx: (i32, i32)) -> &mut Self::Output {
-        &mut self.data[(self.width as i32 * yx.0 + yx.1) as usize]
     }
 }
 
@@ -238,13 +250,13 @@ fn gen_2d_rangei(height: usize, width: usize) -> impl Iterator<Item = (i32, i32)
 }
 
 fn gen_adjacentsi(center_yx: (i32, i32)) -> impl Iterator<Item = (i32, i32)> {
-    K_ADJACENTS
+    K_ADJACENTS_4
         .iter()
         .map(move |v| (center_yx.0 + v.0, center_yx.1 + v.1))
 }
 
 fn gen_adjacentsu(center_yx: (usize, usize)) -> impl Iterator<Item = (i32, i32)> {
-    K_ADJACENTS
+    K_ADJACENTS_4
         .iter()
         .map(move |v| (center_yx.0 as i32 + v.0, center_yx.1 as i32 + v.1))
 }
